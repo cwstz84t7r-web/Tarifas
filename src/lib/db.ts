@@ -19,6 +19,9 @@ function getClient(): ReturnType<typeof postgres> {
     ssl: "prefer",
     transform: postgres.camel,
     max: 5,
+    // El "Transaction pooler" de Supabase (pgbouncer) no admite prepared
+    // statements, que es lo que usa esta librería por defecto.
+    prepare: false,
   });
   globalThis.__tarifasSql = client;
   return client;

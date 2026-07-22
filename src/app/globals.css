@@ -521,6 +521,58 @@ button.btn.danger {
   margin-top: 4px;
 }
 
+@media print {
+  .topbar,
+  .fab,
+  .shopping-add-form,
+  .shopping-clear,
+  button {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  .shopping-section {
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    padding: 10px 0;
+    break-inside: avoid;
+  }
+
+  .shopping-section:has(.shopping-empty) {
+    display: none;
+  }
+
+  .shopping-count {
+    display: none;
+  }
+
+  .shopping-item {
+    padding: 3px 0;
+  }
+
+  .shopping-item input[type="checkbox"] {
+    display: none;
+  }
+
+  .shopping-item::before {
+    content: "\2610";
+    margin-right: 8px;
+  }
+
+  .shopping-item.checked::before {
+    content: "\2611";
+  }
+
+  .shopping-item.checked span.item-name {
+    color: black;
+  }
+}
+
 .spinner {
   display: inline-block;
   width: 14px;

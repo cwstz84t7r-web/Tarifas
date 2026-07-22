@@ -41,7 +41,13 @@ export function Sparkline({ entries, color }: { entries: PriceEntry[]; color: st
       >
         <path d={path} fill="none" stroke={color} strokeWidth={2} />
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={2.5} fill={color} />
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r={entries[i].isPromo ? 3.5 : 2.5}
+            fill={entries[i].isPromo ? "#a15c00" : color}
+          />
         ))}
       </svg>
       <div

@@ -85,6 +85,15 @@ Se añade un icono como el de cualquier app, pero por dentro es la página web
    ("bloqueado", "no se encontró el precio"...) y un botón **Precio manual**
    para escribir tú el precio que veas en la web. Se guarda igual en el
    histórico.
+5. **Ofertas**: cuando una tienda marca el producto como rebajado, verás una
+   etiqueta 🏷️ "Oferta -XX%" con el precio anterior tachado, tanto en la
+   lista como en el detalle. En el gráfico de histórico, los puntos en
+   oferta se marcan de otro color.
+6. **Lista de la compra**: en la pestaña **Lista** puedes añadir cualquier
+   producto (esté o no en tu seguimiento de precios) a la lista de cada
+   supermercado, marcarlo cuando lo compres y vaciar los ya comprados. Desde
+   el detalle de un producto también puedes pulsar **Añadir a la lista**
+   para mandarlo directamente a la lista de esa tienda.
 
 ## Cosas que debes saber
 
@@ -100,6 +109,11 @@ Se añade un icono como el de cualquier app, pero por dentro es la página web
 - Si una tienda rediseña su web, la lectura automática de esa tienda puede
   dejar de funcionar hasta que se actualice el código. El precio manual
   siempre estará disponible como alternativa.
+- **La detección de ofertas es fiable en Mercadona** (usa el mismo indicador
+  interno que la propia web). En el resto de tiendas es una detección "a
+  ojo" basada en cómo suelen marcar los precios tachados en la página: puede
+  fallar (no detectar una oferta real, o marcar como oferta algo que no lo
+  es) si esa tienda cambia el diseño de su web.
 - La app está protegida con una contraseña (`APP_PASSWORD`), pero al estar
   en una URL pública de internet, no compartas el enlace con nadie que no
   deba usarla.

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProductWithLinks, ProductLink, PriceEntry } from "@/lib/types";
 import { STORE_KEYS, STORES, type StoreKey } from "@/lib/stores";
-import { formatPrice, formatDate } from "@/lib/format";
+import { formatPrice, formatDate, formatDiscount } from "@/lib/format";
 import { Sparkline } from "@/components/Sparkline";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -25,9 +25,11 @@ function statusClass(status: string | null): string {
 function ExistingLinkRow({
   link,
   history,
+  productName,
 }: {
   link: ProductLink;
   history: PriceEntry[];
+  productName: string;
 }) {
   const router = useRouter();
   const store = STORES[link.store];
@@ -36,6 +38,21 @@ function ExistingLinkRow({
   const [manualPrice, setManualPrice] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [addedToList, setAddedToList] = useState(false);
+
+  async function handleAddToList() {
+    setBusy(true);
+    try {
+      await fetch("/api/shopping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ store: link.store, name: productName, productLinkId: link.id }),
+      });
+      setAddedToList(true);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleRefresh() {
     setBusy(true);
@@ -105,7 +122,17 @@ function ExistingLinkRow({
         </span>
       </div>
 
-      <p className="store-detail-price">{formatPrice(link.lastPrice)}</p>
+      <div className="price-line">
+        <p className="store-detail-price">{formatPrice(link.lastPrice)}</p>
+        {link.lastPromo && link.lastRegularPrice && (
+          <>
+            <span className="strike">{formatPrice(link.lastRegularPrice)}</span>
+            <span className="promo-badge">
+              🏷️ Oferta {formatDiscount(link.lastPrice, link.lastRegularPrice)}
+            </span>
+          </>
+        )}
+      </div>
       <p className="muted">Última comprobación: {formatDate(link.lastCheckedAt)}</p>
       {message && <p className="error-text">{message}</p>}
 
@@ -121,6 +148,9 @@ function ExistingLinkRow({
         <a className="btn ghost" href={link.url} target="_blank" rel="noreferrer">
           Ver producto
         </a>
+        <button className="btn ghost" onClick={handleAddToList} disabled={busy || addedToList}>
+          {addedToList ? "Añadido a la lista ✓" : "Añadir a la lista"}
+        </button>
         <button className="btn danger" onClick={handleDelete} disabled={busy}>
           Quitar
         </button>
@@ -245,7 +275,12 @@ export function ProductDetail({
           const link = product.links.find((l) => l.store === key);
           if (link) {
             return (
-              <ExistingLinkRow key={key} link={link} history={histories[link.id] ?? []} />
+              <ExistingLinkRow
+                key={key}
+                link={link}
+                history={histories[link.id] ?? []}
+                productName={product.name}
+              />
             );
           }
           return <AddLinkRow key={key} productId={product.id} store={key} />;

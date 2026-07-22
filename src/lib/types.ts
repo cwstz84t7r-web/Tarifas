@@ -9,6 +9,8 @@ export interface ProductLink {
   url: string;
   lastPrice: string | null;
   lastCurrency: string | null;
+  lastRegularPrice: string | null;
+  lastPromo: boolean;
   lastCheckedAt: string | null;
   lastStatus: LinkStatus;
   lastError: string | null;
@@ -30,6 +32,17 @@ export interface PriceEntry {
   productLinkId: string;
   price: string;
   currency: string;
+  regularPrice: string | null;
+  isPromo: boolean;
   source: "auto" | "manual";
   checkedAt: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  store: StoreKey;
+  name: string;
+  checked: boolean;
+  productLinkId: string | null;
+  createdAt: string;
 }

@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { getSql } from "@/lib/db";
 import type { StoreKey } from "@/lib/stores";
-import type { Product, ProductLink, ProductWithLinks, PriceEntry } from "@/lib/types";
+import type {
+  Product,
+  ProductLink,
+  ProductWithLinks,
+  PriceEntry,
+  ShoppingItem,
+} from "@/lib/types";
 
 export async function listProductsWithLinks(): Promise<ProductWithLinks[]> {
   const sql = await getSql();
@@ -13,6 +19,7 @@ export async function listProductsWithLinks(): Promise<ProductWithLinks[]> {
   const links = await sql<ProductLink[]>`
     select id, product_id as "productId", store, url,
            last_price as "lastPrice", last_currency as "lastCurrency",
+           last_regular_price as "lastRegularPrice", last_promo as "lastPromo",
            last_checked_at as "lastCheckedAt", last_status as "lastStatus",
            last_error as "lastError", created_at as "createdAt"
     from product_links
@@ -33,6 +40,7 @@ export async function getProductWithLinks(id: string): Promise<ProductWithLinks 
   const links = await sql<ProductLink[]>`
     select id, product_id as "productId", store, url,
            last_price as "lastPrice", last_currency as "lastCurrency",
+           last_regular_price as "lastRegularPrice", last_promo as "lastPromo",
            last_checked_at as "lastCheckedAt", last_status as "lastStatus",
            last_error as "lastError", created_at as "createdAt"
     from product_links
@@ -93,6 +101,7 @@ export async function getLink(linkId: string): Promise<ProductLink | null> {
   const [link] = await sql<ProductLink[]>`
     select id, product_id as "productId", store, url,
            last_price as "lastPrice", last_currency as "lastCurrency",
+           last_regular_price as "lastRegularPrice", last_promo as "lastPromo",
            last_checked_at as "lastCheckedAt", last_status as "lastStatus",
            last_error as "lastError", created_at as "createdAt"
     from product_links where id = ${linkId}
@@ -104,22 +113,28 @@ export async function recordSuccess(
   linkId: string,
   price: number,
   currency: string,
-  source: "auto" | "manual"
+  source: "auto" | "manual",
+  regularPrice?: number | null,
+  isPromo?: boolean
 ): Promise<void> {
   const sql = await getSql();
+  const promo = isPromo ?? false;
+  const regular = promo ? regularPrice ?? null : null;
   await sql.begin(async (tx) => {
     await tx`
       update product_links set
         last_price = ${price},
         last_currency = ${currency},
+        last_regular_price = ${regular},
+        last_promo = ${promo},
         last_checked_at = now(),
         last_status = 'ok',
         last_error = null
       where id = ${linkId}
     `;
     await tx`
-      insert into price_entries (id, product_link_id, price, currency, source)
-      values (${randomUUID()}, ${linkId}, ${price}, ${currency}, ${source})
+      insert into price_entries (id, product_link_id, price, currency, regular_price, is_promo, source)
+      values (${randomUUID()}, ${linkId}, ${price}, ${currency}, ${regular}, ${promo}, ${source})
     `;
   });
 }
@@ -142,10 +157,56 @@ export async function recordFailure(
 export async function getHistory(linkId: string): Promise<PriceEntry[]> {
   const sql = await getSql();
   return sql<PriceEntry[]>`
-    select id, product_link_id as "productLinkId", price, currency, source,
-           checked_at as "checkedAt"
+    select id, product_link_id as "productLinkId", price, currency,
+           regular_price as "regularPrice", is_promo as "isPromo",
+           source, checked_at as "checkedAt"
     from price_entries
     where product_link_id = ${linkId}
     order by checked_at asc
   `;
+}
+
+export async function listShoppingItems(): Promise<ShoppingItem[]> {
+  const sql = await getSql();
+  return sql<ShoppingItem[]>`
+    select id, store, name, checked, product_link_id as "productLinkId",
+           created_at as "createdAt"
+    from shopping_items
+    order by checked asc, created_at asc
+  `;
+}
+
+export async function addShoppingItem(
+  store: StoreKey,
+  name: string,
+  productLinkId?: string | null
+): Promise<ShoppingItem> {
+  const sql = await getSql();
+  const id = randomUUID();
+  const [item] = await sql<ShoppingItem[]>`
+    insert into shopping_items (id, store, name, product_link_id)
+    values (${id}, ${store}, ${name.trim()}, ${productLinkId ?? null})
+    returning id, store, name, checked, product_link_id as "productLinkId",
+              created_at as "createdAt"
+  `;
+  return item;
+}
+
+export async function setShoppingItemChecked(id: string, checked: boolean): Promise<void> {
+  const sql = await getSql();
+  await sql`update shopping_items set checked = ${checked} where id = ${id}`;
+}
+
+export async function deleteShoppingItem(id: string): Promise<void> {
+  const sql = await getSql();
+  await sql`delete from shopping_items where id = ${id}`;
+}
+
+export async function clearCheckedShoppingItems(store?: StoreKey): Promise<void> {
+  const sql = await getSql();
+  if (store) {
+    await sql`delete from shopping_items where checked = true and store = ${store}`;
+  } else {
+    await sql`delete from shopping_items where checked = true`;
+  }
 }

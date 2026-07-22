@@ -1,5 +1,11 @@
 export type ScrapeResult =
-  | { ok: true; price: number; currency: string }
+  | {
+      ok: true;
+      price: number;
+      currency: string;
+      regularPrice?: number;
+      isPromo?: boolean;
+    }
   | {
       ok: false;
       reason: "blocked" | "not_found" | "network" | "parse";

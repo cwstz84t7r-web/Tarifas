@@ -1,5 +1,22 @@
 import * as cheerio from "cheerio";
+import type { CheerioAPI } from "cheerio";
 import { BROWSER_USER_AGENT, type ScrapeResult } from "./types";
+
+const OLD_PRICE_SELECTORS = [
+  "del",
+  "s",
+  "[class*='old-price' i]",
+  "[class*='oldprice' i]",
+  "[class*='was-price' i]",
+  "[class*='price-before' i]",
+  "[class*='pvp-anterior' i]",
+  "[class*='precio-anterior' i]",
+  "[class*='precioanterior' i]",
+  "[class*='regular-price' i]",
+  "[class*='strikethrough' i]",
+  "[class*='line-through' i]",
+  "[style*='line-through' i]",
+];
 
 function parsePriceText(raw: string): number | null {
   const cleaned = raw.replace(/[^\d,.-]/g, "").trim();
@@ -41,6 +58,31 @@ function extractPriceFromJsonLd(json: any): number | null {
   return null;
 }
 
+function findRegularPrice($: CheerioAPI, currentPrice: number): number | null {
+  const metaBefore = $('meta[property="product:price:amount"]').attr("content");
+  const metaSale = $('meta[property="product:sale_price:amount"]').attr("content");
+  if (metaBefore && metaSale) {
+    const before = parsePriceText(metaBefore);
+    const sale = parsePriceText(metaSale);
+    if (before != null && sale != null && before > sale + 0.001) {
+      return before;
+    }
+  }
+
+  for (const selector of OLD_PRICE_SELECTORS) {
+    const elements = $(selector).toArray().slice(0, 5);
+    for (const el of elements) {
+      const text = $(el).text();
+      const value = parsePriceText(text);
+      if (value != null && value > currentPrice + 0.001) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function scrapeGeneric(url: string): Promise<ScrapeResult> {
   try {
     const res = await fetch(url, {
@@ -63,39 +105,57 @@ export async function scrapeGeneric(url: string): Promise<ScrapeResult> {
     const html = await res.text();
     const $ = cheerio.load(html);
 
+    let price: number | null = null;
+
     for (const el of $('script[type="application/ld+json"]').toArray()) {
       const raw = $(el).contents().text();
       if (!raw) continue;
       try {
         const json = JSON.parse(raw);
-        const price = extractPriceFromJsonLd(json);
-        if (price != null) return { ok: true, price, currency: "EUR" };
+        price = extractPriceFromJsonLd(json);
+        if (price != null) break;
       } catch {
         // bloque JSON-LD malformado, seguimos probando otros
       }
     }
 
-    const metaSelectors = [
-      'meta[property="product:price:amount"]',
-      'meta[property="og:price:amount"]',
-      'meta[itemprop="price"]',
-    ];
-    for (const selector of metaSelectors) {
-      const content = $(selector).attr("content");
-      if (content) {
-        const price = parsePriceText(content);
-        if (price != null) return { ok: true, price, currency: "EUR" };
+    if (price == null) {
+      const metaSelectors = [
+        'meta[property="product:sale_price:amount"]',
+        'meta[property="product:price:amount"]',
+        'meta[property="og:price:amount"]',
+        'meta[itemprop="price"]',
+      ];
+      for (const selector of metaSelectors) {
+        const content = $(selector).attr("content");
+        if (content) {
+          price = parsePriceText(content);
+          if (price != null) break;
+        }
       }
     }
 
-    const itemPropEl = $("[itemprop='price']").first();
-    if (itemPropEl.length) {
-      const raw = itemPropEl.attr("content") ?? itemPropEl.text();
-      const price = parsePriceText(raw);
-      if (price != null) return { ok: true, price, currency: "EUR" };
+    if (price == null) {
+      const itemPropEl = $("[itemprop='price']").first();
+      if (itemPropEl.length) {
+        const raw = itemPropEl.attr("content") ?? itemPropEl.text();
+        price = parsePriceText(raw);
+      }
     }
 
-    return { ok: false, reason: "not_found" };
+    if (price == null) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    const regularPrice = findRegularPrice($, price);
+
+    return {
+      ok: true,
+      price,
+      currency: "EUR",
+      isPromo: regularPrice != null,
+      regularPrice: regularPrice ?? undefined,
+    };
   } catch (err) {
     return { ok: false, reason: "network", message: String(err) };
   }

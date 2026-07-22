@@ -34,17 +34,25 @@ export async function scrapeMercadona(url: string): Promise<ScrapeResult> {
     }
 
     const data = await res.json();
-    const raw =
-      data?.price_instructions?.unit_price ??
-      data?.price_instructions?.bulk_price ??
-      data?.price_instructions?.reference_price;
+    const instructions = data?.price_instructions ?? {};
+    const raw = instructions.unit_price ?? instructions.bulk_price ?? instructions.reference_price;
 
     const price = parseFloat(String(raw).replace(",", "."));
     if (!Number.isFinite(price)) {
       return { ok: false, reason: "not_found" };
     }
 
-    return { ok: true, price, currency: "EUR" };
+    const isPromo = instructions.price_decreased === true;
+    const rawPrevious = instructions.previous_unit_price ?? instructions.previous_bulk_price;
+    const regularPrice = rawPrevious != null ? parseFloat(String(rawPrevious).replace(",", ".")) : undefined;
+
+    return {
+      ok: true,
+      price,
+      currency: "EUR",
+      isPromo,
+      regularPrice: isPromo && Number.isFinite(regularPrice) ? regularPrice : undefined,
+    };
   } catch (err) {
     return { ok: false, reason: "network", message: String(err) };
   }

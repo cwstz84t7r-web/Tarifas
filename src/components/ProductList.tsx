@@ -61,6 +61,7 @@ function ProductCard({ product }: { product: ProductWithLinks }) {
               style={{ borderLeft: `3px solid ${STORES[key].color}` }}
             >
               {STORES[key].label}: {link ? formatPrice(link.lastPrice) : "sin enlace"}
+              {link?.lastPromo && " 🏷️"}
             </span>
           );
         })}

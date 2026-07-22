@@ -9,6 +9,10 @@ export function TopBar() {
           <h1>Tarifas</h1>
           <small>precios de supermercados</small>
         </Link>
+        <nav className="topbar-nav">
+          <Link href="/">Productos</Link>
+          <Link href="/lista">Lista</Link>
+        </nav>
         <LogoutButton />
       </div>
     </div>

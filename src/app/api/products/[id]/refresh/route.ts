@@ -16,7 +16,14 @@ export async function POST(
   for (const link of product.links) {
     const result = await scrapePrice(link.store, link.url);
     if (result.ok) {
-      await recordSuccess(link.id, result.price, result.currency, "auto");
+      await recordSuccess(
+        link.id,
+        result.price,
+        result.currency,
+        "auto",
+        result.regularPrice ?? null,
+        result.isPromo ?? false
+      );
       results.push({ linkId: link.id, store: link.store, ok: true, price: result.price });
     } else {
       await recordFailure(link.id, result.reason, result.message ?? null);

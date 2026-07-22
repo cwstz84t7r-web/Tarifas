@@ -1,3 +1,8 @@
+// Nota: este SQL vive aquí (como texto embebido en el código) y no en un
+// archivo .sql suelto porque Vercel no incluye archivos sueltos que no
+// formen parte del grafo de imports de JavaScript/TypeScript en el paquete
+// que despliega. Al ser una constante importada, sí queda incluida.
+export const SCHEMA_SQL = `
 create table if not exists products (
   id text primary key,
   name text not null,
@@ -51,3 +56,4 @@ create table if not exists shopping_items (
 
 create index if not exists idx_shopping_items_store
   on shopping_items (store, checked, created_at);
+`;

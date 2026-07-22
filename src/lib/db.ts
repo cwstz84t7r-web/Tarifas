@@ -1,6 +1,5 @@
 import postgres from "postgres";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { SCHEMA_SQL } from "@/lib/schema-sql";
 
 declare global {
   var __tarifasSql: ReturnType<typeof postgres> | undefined;
@@ -26,9 +25,7 @@ function getClient(): ReturnType<typeof postgres> {
 }
 
 async function ensureSchema(client: ReturnType<typeof postgres>) {
-  const schemaPath = join(process.cwd(), "db", "schema.sql");
-  const schema = readFileSync(schemaPath, "utf-8");
-  await client.unsafe(schema);
+  await client.unsafe(SCHEMA_SQL);
 }
 
 export function getSql() {

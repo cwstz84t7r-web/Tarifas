@@ -269,6 +269,12 @@ export function ProductDetail({
           </button>
         </div>
       </div>
+      {refreshingAll && (
+        <p className="muted" style={{ marginTop: -8, marginBottom: 12 }}>
+          Consultando cada tienda con una pausa entre medias para no parecer un
+          robot — puede tardar hasta un minuto.
+        </p>
+      )}
 
       <div style={{ marginTop: 16 }}>
         {STORE_KEYS.map((key) => {

@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
-import { BROWSER_USER_AGENT, type ScrapeResult } from "./types";
+import { BROWSER_USER_AGENT, FETCH_TIMEOUT_MS, type ScrapeResult } from "./types";
 
 const OLD_PRICE_SELECTORS = [
   "del",
@@ -93,6 +93,7 @@ export async function scrapeGeneric(url: string): Promise<ScrapeResult> {
       },
       redirect: "follow",
       cache: "no-store",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (res.status === 403 || res.status === 429) {

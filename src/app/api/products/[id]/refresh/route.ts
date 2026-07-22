@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProductWithLinks, recordFailure, recordSuccess } from "@/lib/data";
 import { scrapePrice } from "@/lib/scrapers";
 
+// Límite máximo que permite el plan gratuito de Vercel para una función.
+export const maxDuration = 60;
+
+const PAUSE_BETWEEN_STORES_MS = 10_000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +22,13 @@ export async function POST(
   }
 
   const results = [];
-  for (const link of product.links) {
+  for (let i = 0; i < product.links.length; i++) {
+    const link = product.links[i];
+    if (i > 0) {
+      // Pausa entre tienda y tienda para no parecer un bot disparando
+      // peticiones en ráfaga.
+      await sleep(PAUSE_BETWEEN_STORES_MS);
+    }
     const result = await scrapePrice(link.store, link.url);
     if (result.ok) {
       await recordSuccess(

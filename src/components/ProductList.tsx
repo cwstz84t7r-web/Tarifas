@@ -43,7 +43,12 @@ function ProductCard({ product }: { product: ProductWithLinks }) {
     <Link href={`/productos/${product.id}`} className="product-card">
       <div className="product-card-head">
         <h3>{product.name}</h3>
-        <button className="btn secondary" onClick={handleRefresh} disabled={refreshing}>
+        <button
+          className="btn secondary"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Puede tardar hasta un minuto: consulta cada tienda con pausas entre medias"
+        >
           {refreshing ? <span className="spinner" /> : "Actualizar"}
         </button>
       </div>

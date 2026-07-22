@@ -1,4 +1,4 @@
-import { BROWSER_USER_AGENT, type ScrapeResult } from "./types";
+import { BROWSER_USER_AGENT, FETCH_TIMEOUT_MS, type ScrapeResult } from "./types";
 
 function extractProductId(url: string): string | null {
   const match = url.match(/\/product\/(\d+)/);
@@ -24,6 +24,7 @@ export async function scrapeMercadona(url: string): Promise<ScrapeResult> {
         "Accept-Language": "es-ES,es;q=0.9",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (res.status === 403 || res.status === 429) {
